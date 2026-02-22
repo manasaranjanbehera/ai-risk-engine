@@ -1,5 +1,7 @@
 # AI Risk Governance Engine
 
+![CI](https://github.com/manasaranjanbehera/ai-risk-engine/actions/workflows/ci.yml/badge.svg)
+
 **Architectural blueprint for AI risk, compliance, and governance in regulated environments.**
 
 ---
