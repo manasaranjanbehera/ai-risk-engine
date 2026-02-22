@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Upgrade pip
+        run: pip install --upgrade pip
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Install dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check .
+
+      - name: Black
+        run: black --check .
+
+      - name: Pytest
+        env:
+          JWT_SECRET: "test-secret-for-ci-only-must-be-32-chars"
+          DATABASE_URL: "postgresql+asyncpg://user:pass@localhost:5432/testdb"
+          REDIS_URL: "redis://localhost:6379/0"
+          RABBITMQ_URL: "amqp://guest:guest@localhost:5672/"
+        run: pytest tests/unit

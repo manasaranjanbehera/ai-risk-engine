@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+
+# Environment
+.env
+.env.local
+*.env
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local / OS
+.DS_Store
+
+# Local SQL session dumps (e.g. DB client exports)
+*.session.sql
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build / dist
+dist/
+build/
+*.egg-info/

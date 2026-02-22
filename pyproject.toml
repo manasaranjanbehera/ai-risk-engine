@@ -1,0 +1,48 @@
+[project]
+name = "ai-risk-engine"
+version = "0.1.0"
+description = "AI Risk Governance and Workflow Orchestration Platform Blueprint"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Manas Ranjan Behera" }
+]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "pydantic-settings",
+    "redis",
+    "aio-pika",
+    "sqlalchemy",
+    "psycopg[binary]",
+    "asyncpg",
+    "cryptography",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff",
+    "black",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-q"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
