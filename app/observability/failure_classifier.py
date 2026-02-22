@@ -16,6 +16,7 @@ from app.governance.exceptions import (
     InvalidModelStateError,
     InvalidWorkflowStateError,
     ModelNotApprovedError,
+    PromptNotApprovedError,
 )
 from app.security.exceptions import (
     AuthorizationError,
@@ -51,7 +52,10 @@ class FailureClassifier:
             return FailureCategory.VALIDATION_ERROR
         if isinstance(exception, RiskThresholdViolationError):
             return FailureCategory.HIGH_RISK
-        if isinstance(exception, (ModelNotApprovedError, InvalidModelStateError)):
+        if isinstance(
+            exception,
+            (ModelNotApprovedError, PromptNotApprovedError, InvalidModelStateError),
+        ):
             return FailureCategory.POLICY_VIOLATION
         if isinstance(
             exception, (InvalidWorkflowStateError, InvalidStatusTransitionError)

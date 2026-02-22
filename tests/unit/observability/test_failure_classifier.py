@@ -6,7 +6,7 @@ from app.domain.exceptions import (
     InvalidTenantError,
     RiskThresholdViolationError,
 )
-from app.governance.exceptions import ModelNotApprovedError
+from app.governance.exceptions import ModelNotApprovedError, PromptNotApprovedError
 from app.observability.failure_classifier import FailureCategory, FailureClassifier
 from app.security.exceptions import AuthorizationError
 
@@ -24,9 +24,13 @@ def test_classify_validation_error():
 
 
 def test_classify_policy_violation():
-    """ModelNotApprovedError -> POLICY_VIOLATION."""
+    """ModelNotApprovedError, PromptNotApprovedError -> POLICY_VIOLATION."""
     assert (
         FailureClassifier.classify(ModelNotApprovedError("x"))
+        == FailureCategory.POLICY_VIOLATION
+    )
+    assert (
+        FailureClassifier.classify(PromptNotApprovedError("prompt not found"))
         == FailureCategory.POLICY_VIOLATION
     )
     assert (

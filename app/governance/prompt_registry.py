@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Optional, Protocol
 
 from app.governance.audit_logger import AuditLogger
+from app.governance.exceptions import PromptNotApprovedError
 
 
 @dataclass(frozen=True)
@@ -134,3 +135,16 @@ class PromptRegistry:
     ) -> Optional[PromptRecord]:
         """Get prompt by id and optional version. If version omitted, returns latest."""
         return await self._repo.get(prompt_id, version)
+
+    async def get_approved_prompt(
+        self,
+        prompt_id: str,
+        version: Optional[int] = None,
+    ) -> PromptRecord:
+        """Get prompt and enforce it is approved for use. Raises PromptNotApprovedError if not found."""
+        record = await self.get_prompt(prompt_id, version)
+        if record is None:
+            raise PromptNotApprovedError(
+                f"Prompt not approved or not found: {prompt_id}"
+            )
+        return record

@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from app.governance.exceptions import PromptNotApprovedError
 from app.governance.prompt_registry import PromptRegistry, PromptRecord
 
 
@@ -101,3 +102,28 @@ async def test_prompt_audit_every_change(prompt_registry, audit_logger):
         correlation_id="c2",
     )
     assert audit_logger.log_action.await_count == 2
+
+
+async def test_get_approved_prompt_raises_when_not_found(prompt_registry):
+    """get_approved_prompt raises PromptNotApprovedError when prompt does not exist."""
+    with pytest.raises(PromptNotApprovedError) as exc_info:
+        await prompt_registry.get_approved_prompt("nonexistent")
+    assert "nonexistent" in str(exc_info.value.message)
+
+
+async def test_get_approved_prompt_returns_record_when_found(prompt_registry):
+    """get_approved_prompt returns the prompt record when it exists."""
+    await prompt_registry.register_prompt(
+        prompt_id="p1",
+        name="Prompt 1",
+        content="Hello",
+        change_reason="initial",
+        author="alice",
+        tenant_id="t1",
+        correlation_id="c1",
+    )
+    record = await prompt_registry.get_approved_prompt("p1")
+    assert record is not None
+    assert record.prompt_id == "p1"
+    assert record.version == 1
+    assert record.content == "Hello"

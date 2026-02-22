@@ -5,6 +5,10 @@ import time
 from typing import TYPE_CHECKING, Optional
 
 from app.governance.audit_logger import AuditLogger
+from app.governance.exceptions import (
+    ModelNotApprovedError,
+    PromptNotApprovedError,
+)
 from app.governance.model_registry import ModelRegistry
 from app.governance.prompt_registry import PromptRegistry
 from app.workflows.langgraph.nodes.compliance_nodes import (
@@ -74,19 +78,17 @@ class ComplianceWorkflow:
         self._evaluation = evaluation_service
 
     async def _resolve_versions(self, state: ComplianceState) -> ComplianceState:
+        """Set model_version and prompt_version from registries. Enforces model and prompt approval."""
         model_version = DEFAULT_MODEL_VERSION
         prompt_version = DEFAULT_PROMPT_VERSION
         if self._model_registry:
-            try:
-                record = await self._model_registry.get_model("compliance-model")
-                if record:
-                    model_version = f"{record.model_name}@{record.version}"
-            except Exception:  # noqa: S110
-                pass
+            record = await self._model_registry.get_approved_model("compliance-model")
+            model_version = f"{record.model_name}@{record.version}"
         if self._prompt_registry:
-            prompt_record = await self._prompt_registry.get_prompt("compliance-prompt")
-            if prompt_record:
-                prompt_version = prompt_record.version
+            prompt_record = await self._prompt_registry.get_approved_prompt(
+                "compliance-prompt"
+            )
+            prompt_version = prompt_record.version
         if (
             state.model_version != model_version
             or state.prompt_version != prompt_version
@@ -180,7 +182,33 @@ class ComplianceWorkflow:
                     )
                     return cached
 
-            current = await self._resolve_versions(state)
+            try:
+                current = await self._resolve_versions(state)
+            except (ModelNotApprovedError, PromptNotApprovedError) as gov_err:
+                resource_type = (
+                    "model"
+                    if isinstance(gov_err, ModelNotApprovedError)
+                    else "prompt"
+                )
+                resource_id = (
+                    "compliance-model"
+                    if isinstance(gov_err, ModelNotApprovedError)
+                    else "compliance-prompt"
+                )
+                await self._audit.log_action(
+                    actor="system",
+                    tenant_id=state.tenant_id,
+                    action="GOVERNANCE_VIOLATION",
+                    resource_type=resource_type,
+                    resource_id=resource_id,
+                    reason=gov_err.message,
+                    correlation_id=state.correlation_id,
+                    metadata={
+                        "exception_type": type(gov_err).__name__,
+                        "event_id": state.event_id,
+                    },
+                )
+                raise
 
             if self._tracing:
                 async with self._tracing.start_span(

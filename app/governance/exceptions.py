@@ -19,3 +19,7 @@ class InvalidModelStateError(GovernanceError):
 
 class InvalidWorkflowStateError(GovernanceError):
     """Raised when approval workflow status transition is not allowed."""
+
+
+class PromptNotApprovedError(GovernanceError):
+    """Raised when attempting to use a prompt that is not approved or not found."""
