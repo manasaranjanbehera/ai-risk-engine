@@ -85,7 +85,69 @@ This design reflects **enterprise-oriented architecture** because: (1) every dec
 
 ---
 
-## 3. Layered Design
+## 3. Governance Enforcement Architecture
+
+Workflows resolve model and prompt versions only through the governance gate; unapproved use is blocked, audited, and classified.
+
+```mermaid
+flowchart TB
+    subgraph Workflows["Workflows (orchestration)"]
+        RW[RiskWorkflow]
+        CW[ComplianceWorkflow]
+    end
+
+    subgraph Gate["Governance Enforcement Gate"]
+        MR[ModelRegistry]
+        PR[PromptRegistry]
+    end
+
+    subgraph Approval["Approval (pre-runtime)"]
+        AW[ApprovalWorkflow]
+    end
+
+    subgraph Observability["Observability"]
+        AL[AuditLogger]
+        FC[FailureClassifier]
+    end
+
+    AW -->|"approve / reject"| MR
+    AW -->|"approve / reject"| PR
+
+    RW -->|"get_approved_model()"| MR
+    RW -->|"get_approved_prompt()"| PR
+    CW -->|"get_approved_model()"| MR
+    CW -->|"get_approved_prompt()"| PR
+
+    MR -->|"approved → model_version"| RW
+    MR -->|"approved → model_version"| CW
+    PR -->|"approved → prompt_version"| RW
+    PR -->|"approved → prompt_version"| CW
+
+    MR -->|"not approved → ModelNotApprovedError"| Block
+    PR -->|"not approved → PromptNotApprovedError"| Block
+
+    subgraph Block["Approval failed — execution blocked"]
+        Log["log GOVERNANCE_VIOLATION"]
+        Classify["classify → POLICY_VIOLATION"]
+        Log --> AL
+        Classify --> FC
+    end
+```
+
+Full detail: [docs/architecture/governance_enforcement.md](docs/architecture/governance_enforcement.md).
+
+---
+
+## 4. Enforcement Guarantees
+
+- **Model must be approved before execution** — Workflows call `get_approved_model()`; unapproved models raise and block.
+- **Prompt must be approved before execution** — Workflows call `get_approved_prompt()`; unapproved prompts raise and block.
+- **Governance violations are audited** — Every blocked attempt logs an immutable GOVERNANCE_VIOLATION audit record.
+- **Failures classified for incident response** — Violations are classified as POLICY_VIOLATION for metrics and alerting.
+
+---
+
+## 5. Layered Design
 
 | Layer | Responsibility | Dependencies |
 |-------|-----------------|--------------|
@@ -103,7 +165,7 @@ Dependencies point **inward**: API → Application → Domain; infrastructure an
 
 ---
 
-## 4. Domain-Driven Design Elements
+## 6. Domain-Driven Design Elements
 
 - **Bounded context:** Risk and compliance events are distinct domain types with explicit status lifecycles (`EventStatus`: RECEIVED → CREATED → VALIDATED → PROCESSING → APPROVED | REJECTED | FAILED) and validated transitions via `BaseEvent.transition_to()`.
 - **Entities and value objects:** `RiskEvent`, `ComplianceEvent`; Pydantic schemas for requests/responses; immutable `AuditRecord` in governance.
@@ -113,7 +175,7 @@ Dependencies point **inward**: API → Application → Domain; infrastructure an
 
 ---
 
-## 5. Multi-Tenant Strategy
+## 7. Multi-Tenant Strategy
 
 - **Tenant identity:** Every request carries a tenant identifier (e.g. via header or context). Middleware sets `tenant_id` in request-scoped context.
 - **Isolation:** `TenantContext.validate_access(resource_tenant, request_tenant)` is used before any resource access; mismatch raises `TenantIsolationError`. Event APIs and workflows are keyed by `tenant_id`; idempotency keys are namespaced (`idempotency:{tenant_id}:{key}`).
@@ -122,7 +184,7 @@ Dependencies point **inward**: API → Application → Domain; infrastructure an
 
 ---
 
-## 6. Deployment Architecture (Docker-Based)
+## 8. Deployment Architecture (Docker-Based)
 
 **Local / development:** Core dependencies run via Docker Compose:
 
@@ -136,7 +198,7 @@ The application runs on the host (e.g. `uvicorn app.main:app --reload`) and conn
 
 ---
 
-## 7. Database Governance Strategy
+## 9. Database Governance Strategy
 
 The AI Risk Engine uses a **single authoritative SQL bootstrap migration** located at:
 
@@ -150,7 +212,7 @@ This file defines the full schema and is intended to be applied to a clean Postg
 
 ---
 
-## 8. Security Considerations
+## 10. Security Considerations
 
 - **Authentication:** `JWT_SECRET` is configured; JWT validation and tenant binding at the API layer are the intended next step for production.
 - **Authorization:** `RBACService.check_permission(role, action)` with roles ADMIN, ANALYST, APPROVER, VIEWER; approval workflows enforce APPROVER/ADMIN for approve/reject.
@@ -160,7 +222,7 @@ This file defines the full schema and is intended to be applied to a clean Postg
 
 ---
 
-## 9. Observability and Scalability
+## 11. Observability and Scalability
 
 **Observability:**  
 Metrics (Prometheus-style counters and histograms), OpenTelemetry-style tracing (trace/span hierarchy), cost tracking per tenant/model/request, failure classification (VALIDATION_ERROR, POLICY_VIOLATION, HIGH_RISK, WORKFLOW_ERROR, INFRA_ERROR, UNEXPECTED_ERROR), and deterministic quality evaluation. All components are dependency-injected; in-memory and simulated Langfuse allow tests and staging without external SaaS. Same interfaces can be wired to real Prometheus, OTLP, or Langfuse later.
@@ -170,7 +232,7 @@ Distributed lock (Redis SETNX + TTL, token-based release) prevents duplicate wor
 
 ---
 
-## 10. Future Enterprise Extensions
+## 12. Future Enterprise Extensions
 
 - **Auth and tenant binding:** Enforce JWT at API edge and bind tenant from token/claims.
 - **Event store and audit in DB:** Use `DbEventRepository` and run `001_initial_schema.sql`; optional dedicated audit table and retention policy.
@@ -190,6 +252,7 @@ Distributed lock (Redis SETNX + TTL, token-based release) prevents duplicate wor
 | [docs/FOLDER_AND_FILE_STRUCTURE.md](docs/FOLDER_AND_FILE_STRUCTURE.md) | Folder and file tree reference. |
 | [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) | Project structure and conventions. |
 | [docs/architecture/ai-system-design-governance-framework.md](docs/architecture/ai-system-design-governance-framework.md) | AI system design and governance framework. |
+| [docs/architecture/governance_enforcement.md](docs/architecture/governance_enforcement.md) | Runtime model and prompt approval, enforcement gate, audit and failure classification. |
 
 **Install:** From the project root, `pip install -e .` (dependencies are defined in `pyproject.toml`). For local setup and tests, see [docs/TESTING_AND_LOCAL_SETUP.md](docs/TESTING_AND_LOCAL_SETUP.md).
 
