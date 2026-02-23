@@ -21,15 +21,15 @@ The architecture assumes high-accountability environments: idempotency, transact
 
 ---
 
-## Why It Matters
+## 2. Why It Matters
 
-In regulated and high-accountability environments, governance must be enforced in runtime execution—not only documented in policy.
+In regulated and high-accountability environments, governance must be enforced at runtime—not only documented in policy.
 
 This repository demonstrates how approval workflows, runtime enforcement gates, audit logging, failure classification, and multi-tenant isolation can be embedded directly into the execution path of AI systems. The goal is to show architectural patterns and control mechanisms that are often discussed conceptually but rarely implemented explicitly in application design.
 
 ---
 
-## 2. Architectural Overview
+## 3. Architectural Overview
 
 The system follows a **layered, dependency-injected** design. The API layer is the only place that depends on FastAPI; domain, application, workflows, governance, security, observability, and scalability layers are **framework-agnostic** and receive dependencies via constructors.
 
@@ -95,7 +95,7 @@ This design reflects **enterprise-oriented architecture** because: (1) every dec
 
 ---
 
-## 3. Governance Enforcement Architecture
+## 4. Governance Enforcement Architecture
 
 Workflows resolve model and prompt versions only through the governance gate; unapproved use is blocked, audited, and classified.
 
@@ -144,11 +144,13 @@ flowchart TB
     end
 ```
 
+This enforcement gate is part of workflow execution, not an external pre-check.
+
 Full detail: [docs/architecture/governance_enforcement.md](docs/architecture/governance_enforcement.md).
 
 ---
 
-## 4. Enforcement Guarantees
+## 5. Enforcement Guarantees
 
 - **Model must be approved before execution** — Workflows call `get_approved_model()`; unapproved models raise and block.
 - **Prompt must be approved before execution** — Workflows call `get_approved_prompt()`; unapproved prompts raise and block.
@@ -157,7 +159,7 @@ Full detail: [docs/architecture/governance_enforcement.md](docs/architecture/gov
 
 ---
 
-## 5. Layered Design
+## 6. Layered Design
 
 | Layer | Responsibility | Dependencies |
 |-------|-----------------|--------------|
@@ -175,7 +177,7 @@ Dependencies point **inward**: API → Application → Domain; infrastructure an
 
 ---
 
-## 6. Domain-Driven Design Elements
+## 7. Domain-Driven Design Elements
 
 - **Bounded context:** Risk and compliance events are distinct domain types with explicit status lifecycles (`EventStatus`: RECEIVED → CREATED → VALIDATED → PROCESSING → APPROVED | REJECTED | FAILED) and validated transitions via `BaseEvent.transition_to()`.
 - **Entities and value objects:** `RiskEvent`, `ComplianceEvent`; Pydantic schemas for requests/responses; immutable `AuditRecord` in governance.
@@ -185,7 +187,7 @@ Dependencies point **inward**: API → Application → Domain; infrastructure an
 
 ---
 
-## 7. Multi-Tenant Strategy
+## 8. Multi-Tenant Strategy
 
 - **Tenant identity:** Every request carries a tenant identifier (e.g. via header or context). Middleware sets `tenant_id` in request-scoped context.
 - **Isolation:** `TenantContext.validate_access(resource_tenant, request_tenant)` is used before any resource access; mismatch raises `TenantIsolationError`. Event APIs and workflows are keyed by `tenant_id`; idempotency keys are namespaced (`idempotency:{tenant_id}:{key}`).
@@ -194,7 +196,7 @@ Dependencies point **inward**: API → Application → Domain; infrastructure an
 
 ---
 
-## 8. Deployment Architecture (Docker-Based)
+## 9. Deployment Architecture (Docker-Based)
 
 **Local / development:** Core dependencies run via Docker Compose:
 
@@ -208,7 +210,7 @@ The application runs on the host (e.g. `uvicorn app.main:app --reload`) and conn
 
 ---
 
-## 9. Database Governance Strategy
+## 10. Database Governance Strategy
 
 The AI Risk Engine uses a **single authoritative SQL bootstrap migration** located at:
 
@@ -222,7 +224,7 @@ This file defines the full schema and is intended to be applied to a clean Postg
 
 ---
 
-## 10. Security Considerations
+## 11. Security Considerations
 
 - **Authentication:** `JWT_SECRET` is configured; JWT validation and tenant binding at the API layer are the intended next step for production.
 - **Authorization:** `RBACService.check_permission(role, action)` with roles ADMIN, ANALYST, APPROVER, VIEWER; approval workflows enforce APPROVER/ADMIN for approve/reject.
@@ -232,7 +234,7 @@ This file defines the full schema and is intended to be applied to a clean Postg
 
 ---
 
-## 11. Observability and Scalability
+## 12. Observability and Scalability
 
 **Observability:**  
 Metrics (Prometheus-style counters and histograms), OpenTelemetry-style tracing (trace/span hierarchy), cost tracking per tenant/model/request, failure classification (VALIDATION_ERROR, POLICY_VIOLATION, HIGH_RISK, WORKFLOW_ERROR, INFRA_ERROR, UNEXPECTED_ERROR), and deterministic quality evaluation. All components are dependency-injected; in-memory and simulated Langfuse allow tests and staging without external SaaS. Same interfaces can be wired to real Prometheus, OTLP, or Langfuse later.
@@ -242,7 +244,7 @@ Distributed lock (Redis SETNX + TTL, token-based release) prevents duplicate wor
 
 ---
 
-## 12. Future Enterprise Extensions
+## 13. Future Enterprise Extensions
 
 - **Auth and tenant binding:** Enforce JWT at API edge and bind tenant from token/claims.
 - **Event store and audit in DB:** Use `DbEventRepository` and run `001_initial_schema.sql`; optional dedicated audit table and retention policy.
