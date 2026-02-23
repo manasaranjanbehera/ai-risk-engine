@@ -4,6 +4,8 @@
 
 **Architectural blueprint for AI risk, compliance, and governance in regulated environments.**
 
+This repository focuses on architectural clarity, governance enforcement, and system design patterns rather than production deployment tooling.
+
 ---
 
 ## 1. Project Vision
@@ -15,7 +17,15 @@ The **AI Risk Governance Engine** is a governance-focused platform foundation de
 - **Enforce compliance** with regulatory flags, escalation paths, and immutable audit records.
 - **Scale** horizontally with distributed locking, per-tenant rate limits, circuit breakers, and workload partitioning.
 
-The architecture assumes high-accountability environments: idempotency, transaction boundaries, failure classification, and tenant isolation are first-class concerns. The design is **enterprise-oriented**—audit-compliant, event-driven, async-first, and observable—without sacrificing clarity or testability.
+The architecture assumes high-accountability environments: idempotency, transaction boundaries, failure classification, and tenant isolation are first-class concerns. The design prioritizes auditability, governance enforcement, tenant isolation, and operational resilience.
+
+---
+
+## Why It Matters
+
+In regulated and high-accountability environments, governance must be enforced in runtime execution—not only documented in policy.
+
+This repository demonstrates how approval workflows, runtime enforcement gates, audit logging, failure classification, and multi-tenant isolation can be embedded directly into the execution path of AI systems. The goal is to show architectural patterns and control mechanisms that are often discussed conceptually but rarely implemented explicitly in application design.
 
 ---
 
