@@ -275,9 +275,10 @@ async def test_risk_workflow_prompt_not_approved_blocks_execution(audit_logger):
     )
     with pytest.raises(PromptNotApprovedError) as exc_info:
         await workflow.run(state)
-    assert "risk-prompt" in str(exc_info.value.message) or "not approved" in str(
-        exc_info.value.message
-    ).lower()
+    assert (
+        "risk-prompt" in str(exc_info.value.message)
+        or "not approved" in str(exc_info.value.message).lower()
+    )
 
 
 @pytest.mark.asyncio

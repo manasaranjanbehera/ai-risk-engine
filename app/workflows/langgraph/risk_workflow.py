@@ -183,9 +183,7 @@ class RiskWorkflow:
                 current = await self._resolve_versions(state)
             except (ModelNotApprovedError, PromptNotApprovedError) as gov_err:
                 resource_type = (
-                    "model"
-                    if isinstance(gov_err, ModelNotApprovedError)
-                    else "prompt"
+                    "model" if isinstance(gov_err, ModelNotApprovedError) else "prompt"
                 )
                 resource_id = (
                     "risk-model"
