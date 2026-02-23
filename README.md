@@ -244,6 +244,16 @@ Distributed lock (Redis SETNX + TTL, token-based release) prevents duplicate wor
 
 ---
 
+## Architectural Decisions
+
+See [docs/adr/001-runtime-governance-enforcement.md](docs/adr/001-runtime-governance-enforcement.md).
+
+## Governance Enforcement Flow
+
+See [docs/architecture/governance_enforcement_sequence.md](docs/architecture/governance_enforcement_sequence.md).
+
+---
+
 ## References
 
 | Document | Purpose |
